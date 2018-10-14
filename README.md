@@ -6,4 +6,4 @@
     4. Fill out the text as text.txt
     5. Run make_pic.exe
 ## Linux
-    1. Run it need as a python script but need to install all needed packages
+    1. Run it as a python script but need to install all needed packages
