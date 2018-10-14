@@ -4,6 +4,9 @@ import random
 from optparse import OptionParser
 from tqdm import tqdm
 
+__author__ = "Xuefeng Sun"
+__version__ = "v0.3"
+
 config = {
     "output_path":"output",
     "input_path":"images",
