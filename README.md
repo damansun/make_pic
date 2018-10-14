@@ -1,9 +1,9 @@
 # Usage
-## windows
-  1. install pytinstaller
-  2. Run pytinstaller -F make_pic.py on windows cmd
-1. 解压压缩包
-2. 复制所有图片到images目录
-3. 将要绘制的文字写到text.txt （每行都会生成一个新的图片）
-4. 运行make_pic.exe
-5. 新生成的图片保存在output文件夹中
+## Windows
+    1. Install pytinstaller
+    2. Run pytinstaller -F make_pic.py on windows cmd to zip as a exe
+    3. Copy all pictures into "images" dir
+    4. Fill out the text as text.txt
+    5. Run make_pic.exe
+## Linux
+    1. Run it need as a python script but need to install all needed packages
