@@ -2,20 +2,31 @@ from PIL import Image,ImageDraw,ImageFont
 import os
 import random
 from optparse import OptionParser
-from tqdm import tqdm
+# [Coulson]: from tqdm import tqdm
+import json
+from imutils import paths
+from datetime import datetime
 
 __author__ = "Xuefeng Sun"
-__version__ = "v0.3"
+__version__ = "v0.2"
 
-config = {
-    "output_path":"output",
-    "input_path":"images",
-    "size":[25,25],
-    "ttf":"fonts/STXihei.ttf",
-    "text":"text.txt",
-    "spacing": {"top":3, "bottom":1, "left":5, "right":1}
-}
+AVALIABLE_PATH = ".history/avaliable.json"
+USED_PATH = ".history/used.json"
 
+config = {}
+
+def load_file(file_path):
+    try:
+        with open(file_path) as json_file:
+            data = json.load(json_file)
+            return data
+    except:
+        print("%s is not found"%file_path)
+        raise
+
+def save_file(file_path, data):
+    with open(file_path, 'w') as json_file:
+        json_file.write(json.dumps(data))
 
 ## Parse command line options
 #
@@ -26,11 +37,26 @@ config = {
 #
 def option_parser():
     Parser = OptionParser(description='''Draw the text on give image.''',
-                        version='0.1', usage='''make_pic.py <image path> <text filename>''')
+                        version='0.2', usage='''make_pic.py [options] <image path>''')
+    Parser.add_option("-u", "--update", dest="update", action="store_true", help="update image database")
+    Parser.add_option("-n", "--number", dest="number", action="store", help="Input the number of images")
+
     (Opt, Args) = Parser.parse_args()
     return (Opt, Args)
 
-def adaptive_property(img_size, text_length, font_size = config["size"]):
+
+def image_resize(img, size=(1500, 1100)):
+    """resize image
+    """
+    try:
+        if img.mode not in ('L', 'RGB'):
+            img = img.convert('RGB')
+        img = img.resize(size)
+    except:
+        pass
+    return img
+
+def adaptive_property(img_size, text_length, font_size, random_y = False):
     txt_property = {}
     txt_pixs = text_length * font_size[0]
     #figure points for drawing the text.
@@ -51,17 +77,20 @@ def adaptive_property(img_size, text_length, font_size = config["size"]):
         txt_property["lines"] = txt_pixs // figure_size[0] + 1
     try:
         txt_property["x"] = figure["left_top"][0]
-        txt_property["y"] = random.randint(figure["left_top"][1], figure["right_bottom"][1] - font_size[1] * 2 * txt_property["lines"])
+        if random_y:
+            txt_property["y"] = random.randint(figure["left_top"][1], figure["right_bottom"][1] - font_size[1] * 2 * txt_property["lines"])
+        else:
+            txt_property["y"] = figure["left_top"][1]
     except:
         raise 
 
     return txt_property
 
-def write_text(img, text):
-    font_size = config["size"]
+def write_text(img, text, img_size = [0,0], start_point=[0,0], random=False):
+    font_size = config["font_size"]
     for i in range(4):
         try:
-            txt_pro = adaptive_property(img.size, len(text), font_size)
+            txt_pro = adaptive_property(img_size, len(text), font_size)
             break
         except:
             print("Try to scaling the font size...")
@@ -74,38 +103,155 @@ def write_text(img, text):
     myfont = ImageFont.truetype(config["ttf"],size=font_size[0])
     draw = ImageDraw.Draw(img)
     lines = txt_pro["lines"]
-    color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+    if random:
+        color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+    else:
+        color = config["color"]
     for line in range(lines):
-        draw.multiline_text((txt_pro["x"], txt_pro["y"] + font_size[1] * 2 * line), \
-            text[txt_pro["words_per_line"] * line:txt_pro["words_per_line"] * (line + 1)], color, font=myfont)
+        draw.multiline_text((start_point[0] + txt_pro["x"], start_point[1] + txt_pro["y"] + font_size[1] * 2 * line), \
+            text[txt_pro["words_per_line"] * line:txt_pro["words_per_line"] * (line + 1)], tuple(color), font=myfont)
     return img
 
-def main(pic_path, text_name):
-    image_paths = os.listdir(os.path.join(pic_path))
-    with open(text_name, 'r', encoding="utf-8") as fin:
-        text_lines = fin.readlines()
-    pbar = tqdm(total=len(text_lines) * len(image_paths))
-    for i, line in enumerate(text_lines):
-        for image in image_paths:
+def image_merge(front_img, text, background_img=None):
+
+    if background_img:
+        new_img = image_resize(background_img, config["output_size"])
+        pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
+        pic_target_size = [new_img.size[0] - config["pic_blank_edge"]["left"] - config["pic_blank_edge"]["right"],
+                            new_img.size[1] - config["pic_blank_edge"]["top"] - config["pic_blank_edge"]["bottom"]]
+
+        front_img = image_resize(front_img, pic_target_size)
+    else:
+        f_img_size = front_img.size
+        x = f_img_size[0] + config["pic_blank_edge"]["left"] + config["pic_blank_edge"]["right"]
+        y = f_img_size[1] + config["pic_blank_edge"]["top"] + config["pic_blank_edge"]["bottom"]
+        new_img = Image.new('RGB', (x,y), (255,255,255))
+        pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
+
+    new_img.paste(front_img, pic_left_top)
+
+    txt_left_top = [config["txt_blank_edge"]["left"], new_img.size[1] - config["pic_blank_edge"]["bottom"]]
+    txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["pic_blank_edge"]["bottom"]]
+    img = write_text(new_img, text, img_size=txt_target_size, start_point=txt_left_top)
+
+    #drawing corner-mark
+    myfont = ImageFont.truetype(config["ttf"],size=config["corner_mark_size"][0])
+    draw = ImageDraw.Draw(img)
+    draw.text([new_img.size[0] - (config["spacing"]["right"] + 1) * config["font_size"][0], 
+        new_img.size[1] - (config["spacing"]["bottom"] + 1) * config["font_size"][0]], 
+        config["corner_mark"], tuple(config["corner_mark_color"]), font=myfont)
+
+    return new_img
+
+def bulid_image_list(path):
+    record = {
+        "last_dir":path,
+        "images_paths":None,
+        "text":None
+    }
+    print("Generating image database ...")
+    record["images_path"] = list(paths.list_images(path))
+    with open(config["text"], 'r', encoding="utf-8") as fin:
+        text = fin.read()
+    record["text"] = text.split("\n\n")
+    try:
+        used = load_file(USED_PATH)
+        for key, data in used.items():
+            data_type = key.split("_")[-1]
+            for d in data:
+                if data_type == "image":
+                    record["images_path"].remove(d)
+                elif data_type == "text":
+                    record["text"].remove(d)
+                else:
+                    print("unknown type")
+    except:
+        pass
+    save_file(AVALIABLE_PATH, record)
+    print("Completed, please run again!!!")
+
+def generate_image(img_list, text, output_name):
+    for i, img in enumerate(img_list):
+        front_img = Image.open(img, mode="r")
+        try:
+            bg_img = Image.open(".config/default_bg.png", mode="r")
+            merged_img = image_merge(front_img, text[i], bg_img)
+        except:
+            merged_img = image_merge(front_img, text[i])
+
+        try:
+            os.mkdir(output_name)
+        except:
+            pass
+        filename_no_ext, ext = img.split(os.path.sep)[-1].split(os.path.extsep)
+        filename = os.path.join(output_name, filename_no_ext + str(i) + "." + ext )
+        merged_img.save(filename, quality=100)
+        try:
+            front_img.close()
+            bg_img.close()
+        except:
+            pass
+
+def main(image_path, image_count = 0):
+    '''
+    with open("text.txt", 'r', encoding="utf-8") as fin:
+        text = fin.read()
+    front_img = Image.open("images/1.jpg", mode="r")
+    try:
+        bg_img = Image.open(".config/default_bg.png", mode="r")
+        img = image_merge(front_img, text, bg_img)
+    except:
+        img = image_merge(front_img, text)
+    img.save("output/test.jpg", quality=100)
+    '''
+    try: 
+        record = load_file(AVALIABLE_PATH)
+        if record["last_dir"] == image_path:
+            print("Your input folder is not same with before, please add -u to update your image database")
+            return
+        else:
+            min_len = min(len(record["images_paths"]), len(record["text"]))
+            if min_len == 0:
+                print("Out of resource!!!")
+                return
+            #Align text and image length
+            record["images_paths"] = record["images_paths"][:min_len]
+            record["text"] = record["text"][:min_len]
+            images_list = record["images_paths"][:image_count]
+            text_list = record["text"][:image_count]
+            record["images_paths"] = record["images_paths"][image_count:]
+            record["text"] = record["text"][image_count:]
+            save_file(AVALIABLE_PATH, record)
             try:
-                org_img = Image.open(os.path.join(pic_path, image))
+                used = load_file(USED_PATH)
             except:
-                print("{} is not avaliable".format(image))
-                continue
-            img = write_text(org_img, line)
-            try:
-                os.mkdir(config["output_path"])
-            except:
-                pass
-            filename_no_ext, ext = image.split(os.path.sep)[-1].split(os.path.extsep)
-            filename = os.path.join(config["output_path"], filename_no_ext + str(i) + "." + ext )
-            img.save(filename, quality=100)
-            org_img.close()
-            pbar.update(n=1)
+                used = {}
+            date = datetime.now().strftime("%Y-%m-%d")
+            strike = 0
+            for n in used.keys():
+                if date in n:
+                    strike = int(n.split("_")[1])
+            strike += 1
+            folder_name = date + str(strike) + str(image_count)
+            generate_image(images_list, text_list, config["output_path"] + folder_name)
+            used[folder_name + "_image"] = images_list
+            used[folder_name + "_text"] = text_list
+            save_file(USED_PATH, used)
+            return
+    except:
+        print("Initializing image database")
+        bulid_image_list(image_path)
+        return
 
 if __name__ == "__main__":
     (option, args) = option_parser()
-    if len(args) != 2:
-        print("Invalid parameters")
-        exit()
-    main(args[0], args[1])
+
+    if len(args) < 2:
+        print("invalid parameters")
+        return
+    config = load_file(".config/Default-settings.json")
+    if option.update:
+        bulid_image_list(args[0])
+        return
+    main(args[0], option.number)
+
