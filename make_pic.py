@@ -21,7 +21,7 @@ def load_file(file_path):
             data = json.load(json_file)
             return data
     except:
-        print("%s is not found"%file_path)
+        # [Coulson]: print("%s is not found"%file_path)
         raise
 
 def save_file(file_path, data):
@@ -39,6 +39,7 @@ def option_parser():
     Parser = OptionParser(description='''Draw the text on give image.''',
                         version='0.2', usage='''make_pic.py [options] <image path>''')
     Parser.add_option("-u", "--update", dest="update", action="store_true", help="update image database")
+    Parser.add_option("-d", "--reset-to-default", dest="default", action="store_true", help="restart database to default")
     Parser.add_option("-n", "--number", dest="number", action="store", help="Input the number of images")
 
     (Opt, Args) = Parser.parse_args()
@@ -102,14 +103,28 @@ def write_text(img, text, img_size = [0,0], start_point=[0,0], random=False):
 
     myfont = ImageFont.truetype(config["ttf"],size=font_size[0])
     draw = ImageDraw.Draw(img)
-    lines = txt_pro["lines"]
+
+    #insert \n for text
+    text_list = list(text)
+    text = []
+    index = 1
+    for t in text_list:
+        if t != "\n":
+            if index % txt_pro["words_per_line"] == 0:
+                text.append("\n")
+            index += 1
+        else:
+            index = 1
+        text.append(t)
+
+    text = ''.join(text)
+
     if random:
         color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
     else:
         color = config["color"]
-    for line in range(lines):
-        draw.multiline_text((start_point[0] + txt_pro["x"], start_point[1] + txt_pro["y"] + font_size[1] * 2 * line), \
-            text[txt_pro["words_per_line"] * line:txt_pro["words_per_line"] * (line + 1)], tuple(color), font=myfont)
+    draw.multiline_text((start_point[0] + txt_pro["x"], start_point[1] + txt_pro["y"]), \
+        text, tuple(color), font=myfont)
     return img
 
 def image_merge(front_img, text, background_img=None):
@@ -150,7 +165,7 @@ def bulid_image_list(path):
         "text":None
     }
     print("Generating image database ...")
-    record["images_path"] = list(paths.list_images(path))
+    record["images_paths"] = list(paths.list_images(path))
     with open(config["text"], 'r', encoding="utf-8") as fin:
         text = fin.read()
     record["text"] = text.split("\n\n")
@@ -160,7 +175,7 @@ def bulid_image_list(path):
             data_type = key.split("_")[-1]
             for d in data:
                 if data_type == "image":
-                    record["images_path"].remove(d)
+                    record["images_paths"].remove(d)
                 elif data_type == "text":
                     record["text"].remove(d)
                 else:
@@ -206,52 +221,62 @@ def main(image_path, image_count = 0):
     '''
     try: 
         record = load_file(AVALIABLE_PATH)
-        if record["last_dir"] == image_path:
-            print("Your input folder is not same with before, please add -u to update your image database")
-            return
-        else:
-            min_len = min(len(record["images_paths"]), len(record["text"]))
-            if min_len == 0:
-                print("Out of resource!!!")
-                return
-            #Align text and image length
-            record["images_paths"] = record["images_paths"][:min_len]
-            record["text"] = record["text"][:min_len]
-            images_list = record["images_paths"][:image_count]
-            text_list = record["text"][:image_count]
-            record["images_paths"] = record["images_paths"][image_count:]
-            record["text"] = record["text"][image_count:]
-            save_file(AVALIABLE_PATH, record)
-            try:
-                used = load_file(USED_PATH)
-            except:
-                used = {}
-            date = datetime.now().strftime("%Y-%m-%d")
-            strike = 0
-            for n in used.keys():
-                if date in n:
-                    strike = int(n.split("_")[1])
-            strike += 1
-            folder_name = date + str(strike) + str(image_count)
-            generate_image(images_list, text_list, config["output_path"] + folder_name)
-            used[folder_name + "_image"] = images_list
-            used[folder_name + "_text"] = text_list
-            save_file(USED_PATH, used)
-            return
     except:
         print("Initializing image database")
         bulid_image_list(image_path)
         return
 
+    if not record["last_dir"] == image_path:
+        print("Your input folder is not same with before, please add -u to update your image database")
+        return
+    else:
+        min_len = min(len(record["images_paths"]), len(record["text"]))
+        if min_len == 0:
+            print("Out of resource!!!")
+            return
+        #Align text and image length
+        record["images_paths"] = record["images_paths"][:min_len]
+        record["text"] = record["text"][:min_len]
+        images_list = record["images_paths"][:image_count]
+        text_list = record["text"][:image_count]
+        record["images_paths"] = record["images_paths"][image_count:]
+        record["text"] = record["text"][image_count:]
+        save_file(AVALIABLE_PATH, record)
+        try:
+            used = load_file(USED_PATH)
+        except:
+            used = {}
+        date = datetime.now().strftime("%Y-%m-%d")
+        strike = 0
+        for n in used.keys():
+            if date in n:
+                strike = int(n.split("-")[-2])
+        strike += 1
+        folder_name = date + '-' + str(strike) + '-' + str(image_count)
+        generate_image(images_list, text_list, config["output_path"] + folder_name)
+        used[folder_name + "_image"] = images_list
+        used[folder_name + "_text"] = text_list
+        save_file(USED_PATH, used)
+        return
+
 if __name__ == "__main__":
     (option, args) = option_parser()
 
-    if len(args) < 2:
+    if len(args) < 1 and not option.default:
         print("invalid parameters")
-        return
+        exit()
     config = load_file(".config/Default-settings.json")
     if option.update:
         bulid_image_list(args[0])
-        return
-    main(args[0], option.number)
+        exit()
+    if option.default:
+        used = {}
+        record = {"last_dir":None}
+        save_file(AVALIABLE_PATH, record)
+        save_file(USED_PATH, used)
+        exit()
+    if option.number:
+        main(args[0], int(option.number))
+    else:
+        main(args[0], 100)
 

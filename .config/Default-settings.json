@@ -1,15 +1,15 @@
 {
     "output_path":"output/",
     "input_path":"images",
-    "font_size":[25,25],
-    "ttf":"fonts/STXihei.ttf",
+    "font_size":[30,30],
+    "ttf":"fonts/yingbixingshu.ttf",
     "text":"text.txt",
-    "spacing": {"top":3, "bottom":1, "left":0, "right":6},
-    "txt_blank_edge":{"left":20, "right":120},
-    "pic_blank_edge":{"top":90, "bottom":300, "left":90, "right":100},
+    "spacing": {"top":3, "bottom":1, "left":0, "right":4},
+    "txt_blank_edge":{"left":20, "right":80},
+    "pic_blank_edge":{"top":90, "bottom":250, "left":90, "right":100},
     "output_size":[900,700],
     "color":[0,0,0],
     "corner_mark":"《致朋友圈》",
-    "corner_mark_size":[25,25],
+    "corner_mark_size":[20,20],
     "corner_mark_color":[0,0,0]
 }
