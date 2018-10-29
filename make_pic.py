@@ -2,7 +2,6 @@ from PIL import Image,ImageDraw,ImageFont
 import os
 import random
 from optparse import OptionParser
-from tqdm import tqdm
 import json
 from imutils import paths
 from datetime import datetime
@@ -186,7 +185,7 @@ def bulid_image_list(path):
     print("Completed, please run again!!!")
 
 def generate_image(img_list, text, output_name):
-    pbar = tqdm(total=len(img_list))
+    total=len(img_list)
     for i, img in enumerate(img_list):
         front_img = Image.open(img, mode="r")
         try:
@@ -202,12 +201,13 @@ def generate_image(img_list, text, output_name):
         filename_no_ext, ext = img.split(os.path.sep)[-1].split(os.path.extsep)
         filename = os.path.join(output_name, filename_no_ext + str(i) + "." + ext )
         merged_img.save(filename, quality=100)
-        pbar.update(n=1)
+        print("%s total:%d/current:%d\r"%("#"*(i + 1), total, i + 1), end='')
         try:
             front_img.close()
             bg_img.close()
         except:
             pass
+    print("\nDone!!!\n")
 
 def main(image_path, image_count = 0):
     '''
@@ -255,7 +255,11 @@ def main(image_path, image_count = 0):
                 strike = int(n.split("-")[-2])
         strike += 1
         folder_name = date + '-' + str(strike) + '-' + str(image_count)
-        generate_image(images_list, text_list, config["output_path"] + folder_name)
+        try:
+            os.mkdir(config["output_path"])
+        except:
+            pass
+        generate_image(images_list, text_list, os.path.join(config["output_path"],folder_name))
         used[folder_name + "_image"] = images_list
         used[folder_name + "_text"] = text_list
         save_file(USED_PATH, used)
