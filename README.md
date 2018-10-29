@@ -4,7 +4,7 @@
 
 2. 打开隐藏文件夹 .config 找到Default-config.json并进行配置
 
-   ![p1](.\md_pic\p1.png)
+   ![p1](md_pic/p1.png)
 
 ## 使用方法
 	make_pic.exe [options] <image path>
