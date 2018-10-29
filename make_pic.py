@@ -2,7 +2,7 @@ from PIL import Image,ImageDraw,ImageFont
 import os
 import random
 from optparse import OptionParser
-# [Coulson]: from tqdm import tqdm
+from tqdm import tqdm
 import json
 from imutils import paths
 from datetime import datetime
@@ -186,6 +186,7 @@ def bulid_image_list(path):
     print("Completed, please run again!!!")
 
 def generate_image(img_list, text, output_name):
+    pbar = tqdm(total=len(img_list))
     for i, img in enumerate(img_list):
         front_img = Image.open(img, mode="r")
         try:
@@ -201,6 +202,7 @@ def generate_image(img_list, text, output_name):
         filename_no_ext, ext = img.split(os.path.sep)[-1].split(os.path.extsep)
         filename = os.path.join(output_name, filename_no_ext + str(i) + "." + ext )
         merged_img.save(filename, quality=100)
+        pbar.update(n=1)
         try:
             front_img.close()
             bg_img.close()
@@ -279,4 +281,3 @@ if __name__ == "__main__":
         main(args[0], int(option.number))
     else:
         main(args[0], 100)
-
