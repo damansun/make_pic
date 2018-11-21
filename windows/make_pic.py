@@ -7,6 +7,7 @@ from imutils import paths
 from datetime import datetime
 import cv2
 import sys
+import time
 
 __author__ = "Xuefeng Sun"
 __version__ = "v0.2"
@@ -188,6 +189,9 @@ def bulid_image_list(path):
 
 def generate_image(img_list, text, output_name):
     total=len(img_list)
+    length = 90
+    start_time = time.time()
+    per_progress = length/total
     for i, img in enumerate(img_list):
         front_img = Image.open(img, mode="r")
         try:
@@ -203,7 +207,10 @@ def generate_image(img_list, text, output_name):
         filename_no_ext, ext = img.split(os.path.sep)[-1].split(os.path.extsep)
         filename = os.path.join(output_name, filename_no_ext + str(i) + "." + ext )
         merged_img.save(filename, quality=100)
-        print("%s total:%d/current:%d\r"%("#"*(i + 1), total, i + 1), end='')
+        #progress bar
+        delta_time = time.time() - start_time
+        print(" "*(length - int(per_progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), i/delta_time), end='', flush=True)
+        print(" {:3d}%|".format(int((i+1)/total * 100)) + "█"*(int(per_progress * i)), end='')
         try:
             front_img.close()
             bg_img.close()
