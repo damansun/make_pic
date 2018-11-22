@@ -10,7 +10,7 @@ import sys
 import time
 
 __author__ = "Xuefeng Sun"
-__version__ = "v0.2"
+__version__ = "v0.3"
 
 AVALIABLE_PATH = ".history/avaliable.json"
 USED_PATH = ".history/used.json"
@@ -129,8 +129,8 @@ def write_text(img, text, img_size = [0,0], start_point=[0,0], random=False):
         text, tuple(color), font=myfont)
     return img
 
-def image_merge(front_img, text, background_img=None):
-
+def image_merge(front_img, text, background_img=None, text_on_top = None):
+    text_on_top = config["text_on_top"]
     if background_img:
         new_img = image_resize(background_img, config["output_size"])
         pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
@@ -142,21 +142,33 @@ def image_merge(front_img, text, background_img=None):
         f_img_size = front_img.size
         x = f_img_size[0] + config["pic_blank_edge"]["left"] + config["pic_blank_edge"]["right"]
         y = f_img_size[1] + config["pic_blank_edge"]["top"] + config["pic_blank_edge"]["bottom"]
+        #create a blank figure
         new_img = Image.new('RGB', (x,y), (255,255,255))
-        pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
+        if text_on_top:
+            #Swop text and picture
+            pic_left_top = [config["pic_blank_edge"]["left"], config["txt_blank_edge"]["bottom"]]
+        else:
+            pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
 
     new_img.paste(front_img, pic_left_top)
 
-    txt_left_top = [config["txt_blank_edge"]["left"], new_img.size[1] - config["pic_blank_edge"]["bottom"]]
-    txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["pic_blank_edge"]["bottom"]]
+    if text_on_top:
+        #Swop text and picture
+        txt_left_top = [config["pic_blank_edge"]["left"], config["spacing"]["top"]]
+        txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["txt_blank_edge"]["bottom"]]
+    else:
+        txt_left_top = [config["txt_blank_edge"]["left"], new_img.size[1] - config["pic_blank_edge"]["bottom"]]
+        txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["pic_blank_edge"]["bottom"]]
+    
     img = write_text(new_img, text, img_size=txt_target_size, start_point=txt_left_top)
 
-    #drawing corner-mark
-    myfont = ImageFont.truetype(config["ttf"],size=config["corner_mark_size"][0])
-    draw = ImageDraw.Draw(img)
-    draw.text([new_img.size[0] - (config["spacing"]["right"] + 1) * config["font_size"][0], 
-        new_img.size[1] - (config["spacing"]["bottom"] + 1) * config["font_size"][0]], 
-        config["corner_mark"], tuple(config["corner_mark_color"]), font=myfont)
+    if not text_on_top:
+        #drawing corner-mark while text on bottom
+        myfont = ImageFont.truetype(config["ttf"],size=config["corner_mark_size"][0])
+        draw = ImageDraw.Draw(img)
+        draw.text([new_img.size[0] - (config["spacing"]["right"] + 1) * config["font_size"][0], 
+            new_img.size[1] - (config["spacing"]["bottom"] + 1) * config["font_size"][0]], 
+            config["corner_mark"], tuple(config["corner_mark_color"]), font=myfont)
 
     return new_img
 
@@ -189,9 +201,9 @@ def bulid_image_list(path):
 
 def generate_image(img_list, text, output_name):
     total=len(img_list)
-    length = 90
+    bar_len = 100
     start_time = time.time()
-    per_progress = length/total
+    progress = bar_len/total
     for i, img in enumerate(img_list):
         front_img = Image.open(img, mode="r")
         try:
@@ -207,16 +219,17 @@ def generate_image(img_list, text, output_name):
         filename_no_ext, ext = img.split(os.path.sep)[-1].split(os.path.extsep)
         filename = os.path.join(output_name, filename_no_ext + str(i) + "." + ext )
         merged_img.save(filename, quality=100)
-        #progress bar
-        delta_time = time.time() - start_time
-        print(" "*(length - int(per_progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), i/delta_time), end='', flush=True)
-        print(" {:3d}%|".format(int((i+1)/total * 100)) + "█"*(int(per_progress * i)), end='')
+
+        # progress bar
+        delta_time = time.time() - start_time + 1
+        print(" "*(bar_len - int(progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), i/delta_time), end='', flush=True)
+        print(" {:3d}%|".format(int((i+1)/total * 100)) + "█"*(int(progress * (i + 1))), end='')
         try:
             front_img.close()
             bg_img.close()
         except:
             pass
-    print("\nDone!!!\n")
+    print("\n")
 
 def main(image_path, image_count = 0):
     '''
