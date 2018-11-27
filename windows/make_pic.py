@@ -145,7 +145,7 @@ def image_merge(front_img, text, background_img=None, text_on_top = None):
         #create a blank figure
         new_img = Image.new('RGB', (x,y), (255,255,255))
         if text_on_top:
-            #Swop text and picture
+            #Swap text and picture
             pic_left_top = [config["pic_blank_edge"]["left"], config["txt_blank_edge"]["bottom"]]
         else:
             pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
@@ -153,7 +153,7 @@ def image_merge(front_img, text, background_img=None, text_on_top = None):
     new_img.paste(front_img, pic_left_top)
 
     if text_on_top:
-        #Swop text and picture
+        #Swap text and picture
         txt_left_top = [config["pic_blank_edge"]["left"], config["spacing"]["top"]]
         txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["txt_blank_edge"]["bottom"]]
     else:
@@ -201,7 +201,7 @@ def bulid_image_list(path):
 
 def generate_image(img_list, text, output_name):
     total=len(img_list)
-    bar_len = 100
+    bar_len = 50
     start_time = time.time()
     progress = bar_len/total
     for i, img in enumerate(img_list):
