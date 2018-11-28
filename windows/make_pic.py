@@ -201,7 +201,7 @@ def bulid_image_list(path):
 
 def generate_image(img_list, text, output_name):
     total=len(img_list)
-    bar_len = 100
+    bar_len = 50
     start_time = time.time()
     progress = bar_len/total
     for i, img in enumerate(img_list):
