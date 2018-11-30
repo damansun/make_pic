@@ -39,7 +39,7 @@ def save_file(file_path, data):
 #
 def option_parser():
     Parser = OptionParser(description='''Draw the text on give image.''',
-                        version='0.2', usage='''make_pic.py [options] <image path>''')
+                        version='0.3', usage='''make_pic.py [options] <image path>''')
     Parser.add_option("-u", "--update", dest="update", action="store_true", help="update image database")
     Parser.add_option("-d", "--reset-to-default", dest="default", action="store_true", help="restart database to default")
     Parser.add_option("-n", "--number", dest="number", action="store", help="Input the number of images")
@@ -222,7 +222,7 @@ def generate_image(img_list, text, output_name):
 
         # progress bar
         delta_time = time.time() - start_time + 1
-        print(" "*(bar_len - int(progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), i/delta_time), end='', flush=True)
+        print(" "*(bar_len - int(progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), (i + 1)/int(delta_time)), end='', flush=True)
         print(" {:3d}%|".format(int((i+1)/total * 100)) + "█"*(int(progress * (i + 1))), end='')
         try:
             front_img.close()

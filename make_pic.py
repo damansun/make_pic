@@ -38,7 +38,7 @@ def save_file(file_path, data):
 #
 def option_parser():
     Parser = OptionParser(description='''Draw the text on give image.''',
-                        version='0.2', usage='''make_pic.py [options] <image path>''')
+                        version='0.3', usage='''make_pic.py [options] <image path>''')
     Parser.add_option("-u", "--update", dest="update", action="store_true", help="update image database")
     Parser.add_option("-d", "--reset-to-default", dest="default", action="store_true", help="restart database to default")
     Parser.add_option("-n", "--number", dest="number", action="store", help="Input the number of images")
@@ -144,7 +144,7 @@ def image_merge(front_img, text, background_img=None, text_on_top = None):
         #create a blank figure
         new_img = Image.new('RGB', (x,y), (255,255,255))
         if text_on_top:
-            #Swop text and picture
+            #Swap text and picture
             pic_left_top = [config["pic_blank_edge"]["left"], config["txt_blank_edge"]["bottom"]]
         else:
             pic_left_top = [config["pic_blank_edge"]["left"], config["pic_blank_edge"]["top"]]
@@ -152,7 +152,7 @@ def image_merge(front_img, text, background_img=None, text_on_top = None):
     new_img.paste(front_img, pic_left_top)
 
     if text_on_top:
-        #Swop text and picture
+        #Swap text and picture
         txt_left_top = [config["pic_blank_edge"]["left"], config["spacing"]["top"]]
         txt_target_size = [new_img.size[0] - config["txt_blank_edge"]["left"] - config["txt_blank_edge"]["right"], config["txt_blank_edge"]["bottom"]]
     else:
@@ -221,7 +221,7 @@ def generate_image(img_list, text, output_name):
 
         # progress bar
         delta_time = time.time() - start_time + 1
-        print(" "*(bar_len - int(progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), i/delta_time), end='', flush=True)
+        print(" "*(bar_len - int(progress * i)) + "|{}/{} : [{}s, {:.2f} t/s]\r".format(total, i + 1, int(delta_time), (i + 1)/int(delta_time)), end='', flush=True)
         print(" {:3d}%|".format(int((i+1)/total * 100)) + "█"*(int(progress * (i + 1))), end='')
         try:
             front_img.close()
